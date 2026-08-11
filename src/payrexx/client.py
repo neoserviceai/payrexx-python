@@ -6,7 +6,7 @@ Handles the three things every call needs and that are easy to get wrong:
    the ``/ecr/*`` ones where the documentation does not mention it. Omitting it
    returns ``422 Unprocessable Content`` with a message that never names the
    missing parameter. This client appends it automatically.
-2. **Bodies must be PHP-style form encoded** (see :mod:`payrexx.encoding`), or
+2. **Bodies must be PHP-style form encoded** (see [`payrexx.encoding`][payrexx.encoding]), or
    list filters such as ``pm`` are silently dropped.
 3. **Retries must never be blind.** Payrexx exposes no idempotency key, so a
    retried POST creates a second resource — a duplicate payment link on the
@@ -46,7 +46,7 @@ DEFAULT_BASE_URL = "https://api.payrexx.com"
 #:
 #: Pinning ``v1.16`` rather than the older ``v1.0`` is deliberate: **v1.15 is where
 #: Payrexx introduced specific HTTP status codes for failed requests**. On earlier
-#: versions the error mapping in :meth:`PayrexxClient._handle_response` cannot be
+#: versions the error mapping in `PayrexxClient._handle_response` cannot be
 #: relied on. v1.16 additionally resolves payout aggregates into their underlying
 #: transfers on ``GET /Payout/{uuid}/details``.
 API_VERSION = "v1.16"
@@ -94,7 +94,7 @@ class PayrexxClient:
             ``api_secret`` is used for terminal calls too.
         timeout: Per-request timeout in seconds.
         max_retries: Attempts for idempotent verbs on transport errors and 5xx.
-        session: Inject a pre-configured :class:`requests.Session` (proxies,
+        session: Inject a pre-configured `requests.Session` (proxies,
             custom TLS, test doubles).
         base_url: Override the API host, e.g. for a recording proxy.
     """
@@ -197,7 +197,7 @@ class PayrexxClient:
 
         Payrexx wraps every response in ``{"status": …, "data": […]}``. On success
         this returns the ``data`` value as-is (usually a list, even for a single
-        object); on failure it raises the matching :class:`PayrexxError` subclass.
+        object); on failure it raises the matching `PayrexxError` subclass.
         """
         method = method.upper()
         url = f"{self.base_url}/{api_version}/{path.lstrip('/')}"

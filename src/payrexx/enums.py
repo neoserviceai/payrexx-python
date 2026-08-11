@@ -2,7 +2,7 @@
 
 All values derive from ``str``, so they compare equal to the raw API strings and
 can be dropped straight into request payloads. Unknown values coming back from
-the API are never coerced — see :meth:`TransactionStatus.parse`.
+the API are never coerced — see `TransactionStatus.parse`.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ class TransactionStatus(_StrEnum):
       appear in no documentation — but **omit** ``chargeback``
 
     Both sources are therefore incomplete, which is the whole reason
-    :meth:`parse` never raises on an unknown value.
+    `parse` never raises on an unknown value.
 
     ``PARTIALLY_REFUNDED`` uses a hyphen and ``REFUND_PENDING`` an underscore —
     that inconsistency is Payrexx's, not a typo here.
@@ -149,7 +149,7 @@ class PaymentMethod(_StrEnum):
     """Payment method identifiers accepted by the ``pm`` filter.
 
     Only a subset is enabled on any given account; read the live list from
-    :meth:`payrexx.resources.payment_provider.PaymentProviderResource.list`
+    [`payrexx.resources.payment_provider.PaymentProviderResource.list`][payrexx.resources.payment_provider.PaymentProviderResource.list]
     (``activePaymentMethods``) rather than assuming.
     """
 

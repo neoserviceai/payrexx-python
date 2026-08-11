@@ -47,7 +47,7 @@ class _Resource:
 class InvoiceResource(_Resource):
     """``/Invoice/`` — a reusable hosted payment link.
 
-    Not an accounting document; that is :class:`BillResource`. Payrexx's naming is
+    Not an accounting document; that is `BillResource`. Payrexx's naming is
     confusing here, and the two live at different endpoints.
     """
 
@@ -312,7 +312,8 @@ class QrCodeResource(_Resource):
     """``/QrCode/`` — static QR codes pointing at a webshop.
 
     A shopper scans the code, which opens a session; pass that session id to
-    :meth:`payrexx.resources.gateway.GatewayResource.create` as
+    [`GatewayResource.create`][payrexx.resources.gateway.GatewayResource.create]
+    as
     ``qr_code_session_id`` to bind the payment to the scan.
     """
 
@@ -394,7 +395,7 @@ class PaymentMethodResource(_Resource):
 
         Use this for rendering a chooser. To know what the account can actually
         accept, use
-        :meth:`payrexx.resources.payment_provider.PaymentProviderResource.active_payment_methods`
+        [`payrexx.resources.payment_provider.PaymentProviderResource.active_payment_methods`][payrexx.resources.payment_provider.PaymentProviderResource.active_payment_methods]
         instead — this endpoint describes methods, it does not tell you which are
         enabled.
         """

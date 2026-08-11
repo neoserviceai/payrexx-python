@@ -20,7 +20,7 @@ class PaymentProviderResource:
         """List the PSPs configured on the account.
 
         Read-only and cheap, which makes it the natural probe for
-        :meth:`~payrexx.client.PayrexxClient.health_check`. Note that the response
+        [`health_check`][payrexx.client.PayrexxClient.health_check]. Note that the response
         also carries the account balance, so any API key is enough to read it —
         keys are not scoped per integration despite what the back-office labels
         suggest.

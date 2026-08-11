@@ -1,4 +1,8 @@
-"""Resource namespaces, reachable as attributes of :class:`payrexx.PayrexxClient`."""
+"""Resource namespaces for the Payrexx API.
+
+Each is reachable as an attribute of
+[`PayrexxClient`][payrexx.client.PayrexxClient].
+"""
 
 from payrexx.resources.ecr import EcrResource
 from payrexx.resources.gateway import GatewayResource

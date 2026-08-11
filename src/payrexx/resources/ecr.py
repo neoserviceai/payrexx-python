@@ -4,14 +4,14 @@ Payrexx presents this as one interface across hardware vendors — you integrate
 once and they translate to each terminal's own protocol. In practice only the
 **NexGo N5, N6 and N86** are supported today.
 
-.. warning::
-   **No idempotency, and no sandbox.** Payrexx documents no idempotency header on
-   ``POST /payment``, and a live test confirmed the gateway endpoint happily
-   creates duplicates for identical requests. On a terminal a duplicate is a
-   *second charge*. This module therefore never retries a payment request, and
-   :meth:`EcrResource.create_payment` exposes ``client_reference`` so callers can
-   recover state by reading back rather than by resending. There is also no
-   documented ECR simulator, so nothing here is exercisable without hardware.
+!!! warning "No idempotency, and no sandbox"
+    Payrexx documents no idempotency header on ``POST /payment``, and a live test
+    confirmed the gateway endpoint happily creates duplicates for identical
+    requests. On a terminal a duplicate is a *second charge*, so this module never
+    retries a payment request — a transport failure raises
+    ``PayrexxTransportError`` and the caller reconciles by reading back rather than
+    resending. There is also no documented ECR simulator, so nothing here is
+    exercisable without hardware.
 """
 
 from __future__ import annotations
@@ -119,19 +119,19 @@ class EcrResource:
             tip_amount: Added on top of ``amount``.
             purpose: Free-text description shown on the terminal and the receipt.
             discount: Discount object, as accepted by the PHP SDK.
-            shop_items: Line items; build them with :meth:`shop_item`.
+            shop_items: Line items; build them with `shop_item`.
 
         Returns:
-            An :class:`~payrexx.models.EcrPayment` whose ``payment_id`` must be
-            persisted immediately — it is what :meth:`get_payment`,
-            :meth:`cancel_payment` and :meth:`void_payment` address.
+            An [`EcrPayment`][payrexx.models.EcrPayment] whose ``payment_id`` must be
+            persisted immediately — it is what `get_payment`,
+            `cancel_payment` and `void_payment` address.
 
         Warning:
             **Never retry this call blindly.** It is not idempotent: a request that
             times out may well have reached the terminal, and resending it can
             charge the customer twice. On a
-            :class:`~payrexx.errors.PayrexxTransportError`, treat the outcome as
-            unknown and reconcile — poll :meth:`get_payment` with the id if you got
+            [`PayrexxTransportError`][payrexx.errors.PayrexxTransportError], treat the outcome as
+            unknown and reconcile — poll `get_payment` with the id if you got
             one, otherwise wait for the transaction webhook and match on
             ``payment_reference``.
         """
@@ -158,7 +158,7 @@ class EcrResource:
 
         Note:
             Payrexx's OpenAPI does not enumerate the possible ``payment_status``
-            values, so :attr:`EcrPayment.status` is returned as a raw string. For
+            values, so `EcrPayment.status` is returned as a raw string. For
             state you can rely on, use the transaction webhook
             (``type == "POS-Terminal"``), whose statuses are documented.
         """
@@ -188,9 +188,9 @@ class EcrResource:
         A void is all-or-nothing and generally only possible on the same day. For a
         partial return, or once settled, a refund is needed instead — and refunds
         are **not available over ECR on NexGo devices**, so that path goes through
-        :meth:`payrexx.resources.transaction.TransactionResource.refund`.
+        [`payrexx.resources.transaction.TransactionResource.refund`][payrexx.resources.transaction.TransactionResource.refund].
 
-        The id is in the path, for the same reason as :meth:`cancel_payment`.
+        The id is in the path, for the same reason as `cancel_payment`.
         """
         suffix = f"payment/{self._client.quote_segment(payment_id)}/void"
         data = self._call("POST", self._path(serial_number, suffix))

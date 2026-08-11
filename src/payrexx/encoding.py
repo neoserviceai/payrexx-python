@@ -15,7 +15,7 @@ serves every payment method on the hosted page. A filter that is quietly dropped
 lets a shopper pay by a method other than the one the caller recorded, which
 breaks reconciliation downstream. Verified against a live account on 2026-08-03.
 
-Encoding every payload through :func:`encode_form` removes that failure mode.
+Encoding every payload through `encode_form` removes that failure mode.
 """
 
 from __future__ import annotations

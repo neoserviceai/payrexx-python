@@ -70,7 +70,7 @@ class TransactionResource:
                 the full remaining amount.
 
         Note:
-            Check :attr:`Transaction.refundable` / ``partially_refundable`` first —
+            Check `Transaction.refundable` / ``partially_refundable`` first —
             they tell you what Payrexx will actually accept. This is also the path
             for returning a POS payment once it is settled, since NexGo terminals do
             not expose refunds over ECR.
@@ -153,7 +153,7 @@ class TransactionResource:
     ) -> Transaction:
         """Pre-authorise an amount against a stored payment means.
 
-        Places a hold without capturing. Complete it with :meth:`capture`, or let it
+        Places a hold without capturing. Complete it with `capture`, or let it
         lapse — an authorisation that is never captured ends up ``uncaptured``.
         """
         payload: dict[str, Any] = {

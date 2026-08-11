@@ -68,7 +68,7 @@ class SubscriptionResource:
                 first through a gateway with ``subscription_state=True``.
             amount: Amount per period, in the smallest currency unit.
             payment_interval: ISO 8601 duration, e.g. ``"P1M"`` — see
-                :class:`payrexx.enums.Interval`.
+                [`payrexx.enums.Interval`][payrexx.enums.Interval].
             period: Total duration of the subscription.
             cancellation_interval: Notice period for cancellation.
         """

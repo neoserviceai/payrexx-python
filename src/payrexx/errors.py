@@ -1,14 +1,14 @@
 """Exception hierarchy for the Payrexx API.
 
-Every error raised by this library derives from :class:`PayrexxError`, so callers
+Every error raised by this library derives from `PayrexxError`, so callers
 can catch a single type. Subclasses map to the HTTP status codes Payrexx actually
 returns, observed against a live account:
 
-- ``403`` with ``"The API secret is not correct."`` → :class:`AuthenticationError`
-- ``422 Unprocessable Content`` → :class:`InvalidRequestError` (very often a
-  missing ``instance`` query parameter — see :class:`MissingInstanceError`)
-- ``404`` with ``"Terminal not found"`` → :class:`TerminalNotFoundError`
-- ``405``/``403`` after ~600 requests per 5 minutes → :class:`RateLimitError`
+- ``403`` with ``"The API secret is not correct."`` → `AuthenticationError`
+- ``422 Unprocessable Content`` → `InvalidRequestError` (very often a
+  missing ``instance`` query parameter — see `MissingInstanceError`)
+- ``404`` with ``"Terminal not found"`` → `TerminalNotFoundError`
+- ``405``/``403`` after ~600 requests per 5 minutes → `RateLimitError`
 """
 
 from __future__ import annotations

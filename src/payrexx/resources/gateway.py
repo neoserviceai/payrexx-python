@@ -1,7 +1,7 @@
 """The Gateway resource: hosted payment pages.
 
 This is the web-checkout path. Create a gateway, send the shopper to
-:attr:`~payrexx.models.Gateway.link`, and let the transaction webhook confirm the
+`Gateway.link`, and let the transaction webhook confirm the
 outcome.
 """
 
@@ -70,13 +70,13 @@ class GatewayResource:
                 warning below.
             payment_methods: Restrict the methods offered on the page. Encoded as
                 ``pm[0]``, ``pm[1]``, … because that is the only form Payrexx
-                honours; check :attr:`Gateway.filter_was_applied` if it matters.
+                honours; check `Gateway.filter_was_applied` if it matters.
             psp: Restrict to specific PSP ids (``44`` is Payrexx Pay).
             fields: Prefilled contact fields, nested as
                 ``{"forename": {"value": "Jean"}}``.
             basket: Line items shown on the payment page.
             pre_authorization: Authorise now, charge later via
-                :meth:`~payrexx.resources.transaction.TransactionResource.capture`.
+                [`capture`][payrexx.resources.transaction.TransactionResource.capture].
             reservation: Reserve the amount for a manual charge.
             charge_on_authorization: Charge immediately on authorisation.
             skip_result_page: Send the shopper straight to the redirect URL instead
@@ -84,14 +84,14 @@ class GatewayResource:
             is_price_exclusive_vat: Whether ``amount`` excludes VAT.
             customer_statement_descriptor: What the shopper sees on their statement.
             look_and_feel_profile: Id of a *Design* to style the page with; create
-                one through :attr:`~payrexx.client.PayrexxClient.design`.
+                one through `client.design`.
             validity: Lifetime of the link, in minutes.
             return_app: Deep link back into a mobile app after payment.
             qr_code_session_id: Ties this gateway to a static-QR scan session; see
-                :attr:`~payrexx.client.PayrexxClient.qr_code`.
+                `client.qr_code`.
             subscription_state: Turn the payment into a recurring subscription.
             subscription_interval: Billing period as an ISO 8601 duration, e.g.
-                ``"P1M"`` — see :class:`payrexx.enums.Interval`.
+                ``"P1M"`` — see [`payrexx.enums.Interval`][payrexx.enums.Interval].
             subscription_period: Total duration of the subscription.
             subscription_cancellation_interval: Notice period for cancellation.
             subscription_period_min_amount: Minimum amount over the period.
@@ -102,14 +102,14 @@ class GatewayResource:
                 intentionally left out of the signature.
 
         Returns:
-            The created :class:`~payrexx.models.Gateway`, whose ``link`` is the URL
+            The created [`Gateway`][payrexx.models.Gateway], whose ``link`` is the URL
             to send the shopper to.
 
         Warning:
             **There is no idempotency.** Two identical calls with the same
             ``reference_id`` create two independent gateways — verified against a
             live account. Call this once per order and persist the returned ``id``
-            and ``hash``; to recover after a crash, use :meth:`find_by_reference`
+            and ``hash``; to recover after a crash, use `find_by_reference`
             instead of creating a second gateway.
         """
         payload: dict[str, Any] = {

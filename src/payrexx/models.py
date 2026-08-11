@@ -174,7 +174,7 @@ class Transaction:
 
     @property
     def channel(self) -> TransactionType | str | None:
-        """Alias for :attr:`type` — the collection channel of this transaction."""
+        """Alias for `type` — the collection channel of this transaction."""
         return self.type
 
     @property
@@ -203,7 +203,7 @@ class EcrPayment:
     """A POS terminal payment, from the ``/ecr/*`` endpoints.
 
     Payrexx's OpenAPI declares ``payment_status`` as a bare string and enumerates
-    no values, so :attr:`status` is intentionally left as the raw string. Do not
+    no values, so `status` is intentionally left as the raw string. Do not
     hard-code comparisons against guessed values — read the transaction webhook
     (``type == "POS-Terminal"``), whose statuses *are* documented, and treat this
     field as a hint for the UI.
@@ -310,7 +310,8 @@ class Subscription:
     """A recurring payment agreement.
 
     Field names follow the PHP SDK's response model. ``status`` is a bare string
-    there too — see :class:`payrexx.enums.SubscriptionStatus` for the values
+    there too — see [`SubscriptionStatus`][payrexx.enums.SubscriptionStatus] for
+    the values
     observed so far.
     """
 
@@ -360,7 +361,7 @@ class Subscription:
 class Invoice:
     """A reusable payment link ("Invoice" in Payrexx terms, ``/Invoice/``).
 
-    Not an accounting document — that is :class:`Bill`. This is a hosted link that
+    Not an accounting document — that is `Bill`. This is a hosted link that
     can be paid repeatedly unless it carries an expiry.
     """
 
@@ -537,7 +538,8 @@ class PaymentMethodInfo:
     Warning:
         **``id`` is the identifier, not ``name``.** ``id`` holds the lowercase code
         (``"mastercard"``) that the ``pm`` filter and
-        :class:`payrexx.enums.PaymentMethod` expect; ``name`` is a human label
+        [`PaymentMethod`][payrexx.enums.PaymentMethod] expect; ``name`` is a human
+        label
         (``"Mastercard"``). Passing ``name`` into a ``pm`` filter yields a filter
         Payrexx silently ignores.
     """
