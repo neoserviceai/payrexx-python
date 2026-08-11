@@ -26,7 +26,7 @@ from payrexx.models import Transaction
 SIGNATURE_HEADER = "X-Webhook-Signature"
 
 
-def compute_signature(raw_body: bytes, signing_key: str) -> str:
+def compute_signature(raw_body: bytes | str, signing_key: str) -> str:
     """Compute the expected signature for ``raw_body``.
 
     Payrexx's scheme has three details that are each easy to get wrong, and each
@@ -39,12 +39,10 @@ def compute_signature(raw_body: bytes, signing_key: str) -> str:
     """
     if isinstance(raw_body, str):  # tolerate a decoded body
         raw_body = raw_body.encode("utf-8")
-    return hmac.new(
-        signing_key.encode("utf-8"), raw_body, hashlib.sha256
-    ).hexdigest()
+    return hmac.new(signing_key.encode("utf-8"), raw_body, hashlib.sha256).hexdigest()
 
 
-def verify_signature(raw_body: bytes, signature: str | None, signing_key: str) -> bool:
+def verify_signature(raw_body: bytes | str, signature: str | None, signing_key: str) -> bool:
     """Return whether ``signature`` matches, comparing in constant time."""
     if not signature or not signing_key:
         return False
@@ -52,7 +50,7 @@ def verify_signature(raw_body: bytes, signature: str | None, signing_key: str) -
     return hmac.compare_digest(expected, signature.strip().lower())
 
 
-def parse_body(raw_body: bytes, content_type: str | None = None) -> dict[str, Any]:
+def parse_body(raw_body: bytes | str, content_type: str | None = None) -> dict[str, Any]:
     """Parse a webhook body into a dict.
 
     Payrexx sends either ``application/json`` or
@@ -88,14 +86,14 @@ class WebhookEvent:
         signature_valid: ``None`` when no verification was requested.
     """
 
-    __slots__ = ("payload", "transaction", "signature_valid", "raw_body")
+    __slots__ = ("payload", "raw_body", "signature_valid", "transaction")
 
     def __init__(
         self,
         payload: dict[str, Any],
         *,
         signature_valid: bool | None = None,
-        raw_body: bytes | None = None,
+        raw_body: bytes | str | None = None,
     ) -> None:
         self.payload = payload
         self.signature_valid = signature_valid
@@ -134,7 +132,7 @@ class WebhookEvent:
 
 
 def parse_webhook(
-    raw_body: bytes,
+    raw_body: bytes | str,
     *,
     headers: dict[str, str] | None = None,
     signing_key: str | None = None,

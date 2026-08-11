@@ -35,9 +35,9 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.fixture(scope="module")
 def client():
-    with PayrexxClient(
-        instance=INSTANCE, api_secret=API_SECRET, pos_api_secret=POS_KEY
-    ) as c:
+    assert INSTANCE, "PAYREXX_INSTANCE must be set; see the module docstring"
+    assert API_SECRET, "PAYREXX_API_SECRET must be set; see the module docstring"
+    with PayrexxClient(instance=INSTANCE, api_secret=API_SECRET, pos_api_secret=POS_KEY) as c:
         yield c
 
 
@@ -78,10 +78,13 @@ def test_create_and_read_gateway(client, created):
     )
     created.append(gw.id)
 
-    assert gw.id and gw.hash and gw.link
+    assert gw.id
+    assert gw.hash
+    assert gw.link
     assert gw.status == TransactionStatus.WAITING
     assert gw.reference_id == "LIVE-TEST-GATEWAY"
     assert gw.amount == 1500
+    assert INSTANCE is not None
     assert INSTANCE in gw.link
     print(f"\n  created gateway {gw.id} → {gw.link}")
 

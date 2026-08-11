@@ -100,6 +100,8 @@ class EcrResource:
         payment_reference: str | None = None,
         print_slip: bool | None = None,
         tip_amount: int | None = None,
+        purpose: str | None = None,
+        discount: Mapping[str, Any] | None = None,
         shop_items: Iterable[Mapping[str, Any]] | None = None,
         extra: Mapping[str, Any] | None = None,
     ) -> EcrPayment:
@@ -115,7 +117,9 @@ class EcrResource:
                 order once the webhook arrives.
             print_slip: Whether the terminal prints a receipt.
             tip_amount: Added on top of ``amount``.
-            shop_items: Line items; each needs at least ``name``.
+            purpose: Free-text description shown on the terminal and the receipt.
+            discount: Discount object, as accepted by the PHP SDK.
+            shop_items: Line items; build them with :meth:`shop_item`.
 
         Returns:
             An :class:`~payrexx.models.EcrPayment` whose ``payment_id`` must be
@@ -138,6 +142,8 @@ class EcrResource:
             "paymentReference": payment_reference,
             "printSlip": print_slip,
             "tipAmount": tip_amount,
+            "purpose": purpose,
+            "discount": dict(discount) if discount else None,
         }
         if shop_items is not None:
             payload["shopItems"] = [dict(item) for item in shop_items]
@@ -160,35 +166,76 @@ class EcrResource:
         data = self._call("GET", self._path(serial_number, suffix))
         return EcrPayment.from_api(_unwrap(data), serial_number=serial_number)
 
-    def cancel_payment(self, serial_number: str, payment_id: str) -> Any:
-        """Cancel a payment still in progress on the terminal."""
-        return self._call(
-            "POST",
-            self._path(serial_number, "payment/cancel"),
-            data={"paymentId": payment_id},
-        )
+    def cancel_payment(self, serial_number: str, payment_id: str) -> EcrPayment:
+        """Cancel a payment still in progress on the terminal.
 
-    def void_payment(self, serial_number: str, payment_id: str) -> Any:
+        Note:
+            The payment id goes **in the path**, not the body. The REST reference
+            shows ``POST /ecr/{sn}/payment/cancel``, but the official PHP SDK builds
+            ``POST /ecr/{sn}/payment/{id}/cancel`` (``setPaymentId()`` assigns
+            ``'payment/' + id`` as the resource id, and ``cancel`` becomes the
+            action segment). Both spellings return the same error against an
+            unpaired terminal, so they could not be told apart without hardware —
+            the SDK is followed here as the more authoritative source.
+        """
+        suffix = f"payment/{self._client.quote_segment(payment_id)}/cancel"
+        data = self._call("POST", self._path(serial_number, suffix))
+        return EcrPayment.from_api(_unwrap(data), serial_number=serial_number)
+
+    def void_payment(self, serial_number: str, payment_id: str) -> EcrPayment:
         """Void a completed payment, before settlement.
 
         A void is all-or-nothing and generally only possible on the same day. For a
         partial return, or once settled, a refund is needed instead — and refunds
         are **not available over ECR on NexGo devices**, so that path goes through
-        the merchant API.
+        :meth:`payrexx.resources.transaction.TransactionResource.refund`.
+
+        The id is in the path, for the same reason as :meth:`cancel_payment`.
         """
-        return self._call(
-            "POST",
-            self._path(serial_number, "payment/void"),
-            data={"paymentId": payment_id},
-        )
+        suffix = f"payment/{self._client.quote_segment(payment_id)}/void"
+        data = self._call("POST", self._path(serial_number, suffix))
+        return EcrPayment.from_api(_unwrap(data), serial_number=serial_number)
 
     # ------------------------------------------------------------------
     # Utilities
     # ------------------------------------------------------------------
 
     def payment_methods(self, serial_number: str) -> Any:
-        """Ask the terminal which payment methods it accepts."""
-        return self._call("POST", self._path(serial_number, "paymentMethods"))
+        """Ask the terminal which payment methods it accepts.
+
+        Note:
+            Sent as ``GET``. The REST reference documents ``POST``, but the PHP SDK
+            maps ``getEcrPaymentMethods`` to ``GET``; both are accepted by the
+            router. Following the SDK.
+        """
+        return self._call("GET", self._path(serial_number, "paymentMethods"))
+
+    @staticmethod
+    def shop_item(
+        name: str,
+        price: int,
+        *,
+        quantity: str | int = 1,
+        unit: str | None = "pc",
+        vat: int | None = None,
+        discount: int | None = 0,
+    ) -> dict[str, Any]:
+        """Build one ``shopItems`` entry, mirroring the PHP SDK's ``addShopItem``.
+
+        Args:
+            name: Required by the API.
+            price: In the smallest currency unit.
+            quantity: The SDK types this as a string; either is accepted here and
+                serialised the same way.
+        """
+        return {
+            "name": name,
+            "price": price,
+            "quantity": quantity,
+            "unit": unit,
+            "vat": vat,
+            "discount": discount,
+        }
 
 
 def _unwrap(data: Any) -> dict[str, Any]:

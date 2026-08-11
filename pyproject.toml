@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "payrexx"
-version = "0.1.0"
-description = "Python client for the Payrexx payment API — hosted gateways, transactions, POS terminals (ECR) and webhooks"
+version = "0.2.0"
+description = "Python client for the Payrexx payment API — gateways, transactions, subscriptions, bills, payouts, POS terminals (ECR) and webhooks"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
 authors = [{ name = "Neoservice" }]
-keywords = ["payrexx", "payments", "twint", "ecr", "pos", "switzerland", "nexgo"]
+keywords = ["payrexx", "payments", "twint", "ecr", "pos", "switzerland", "nexgo", "qr-bill"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
@@ -26,32 +26,181 @@ classifiers = [
 dependencies = ["requests>=2.25"]
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "pytest-cov", "responses>=0.23", "mypy>=1.5", "ruff>=0.4"]
+dev = [
+  "pytest>=7",
+  "pytest-cov>=4",
+  "responses>=0.23",
+  "mypy>=1.5",
+  "ruff>=0.6",
+  "types-requests",
+]
 
 [project.urls]
 Homepage = "https://github.com/neoserviceai/payrexx-python"
 Issues = "https://github.com/neoserviceai/payrexx-python/issues"
-"Payrexx API docs" = "https://developers.payrexx.com/reference/rest-api"
+"Payrexx API reference" = "https://developers.payrexx.com/reference/rest-api"
+"Payrexx PHP SDK (coverage reference)" = "https://github.com/payrexx/payrexx-php"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/payrexx"]
 
+# ---------------------------------------------------------------------------
+# Tests — strict by default.
+#
+# This library moves money. A test suite that quietly collects nothing, or a
+# typo'd marker that silently skips a case, is worse than no suite at all: it
+# reports green while covering less than you think. Hence every strictness knob
+# pytest offers is on, warnings are errors, and coverage has a floor.
+# ---------------------------------------------------------------------------
 [tool.pytest.ini_options]
+minversion = "7.0"
 testpaths = ["tests"]
-addopts = "-q --doctest-modules --ignore=tests/test_live.py"
+addopts = [
+  "-q",
+  "--strict-markers",       # an unregistered marker is an error, not a skip
+  "--strict-config",        # a typo in this very section is an error
+  "-ra",                    # summarise every non-passing outcome
+  "--doctest-modules",      # docstring examples are tests
+  "--ignore=tests/test_live.py",
+  "--cov=payrexx",
+  "--cov-report=term-missing:skip-covered",
+  "--cov-fail-under=90",
+]
+filterwarnings = ["error"]  # a DeprecationWarning must break the build, not scroll past
+markers = [
+  "live: talks to the real Payrexx API; needs credentials and is excluded by default",
+]
+xfail_strict = true         # an xfail that passes is a bug in the test
 
+[tool.coverage.run]
+branch = true
+source = ["payrexx"]
+
+[tool.coverage.report]
+skip_covered = false
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+  "\\.\\.\\.$",
+]
+
+# ---------------------------------------------------------------------------
+# Formatting and linting — one formatter, no debate.
+# ---------------------------------------------------------------------------
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+docstring-code-format = true       # format the code inside docstrings too
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM", "ANN"]
-ignore = ["ANN401"]
+select = [
+  "F",     # pyflakes
+  "E", "W",# pycodestyle
+  "I",     # import sorting
+  "N",     # pep8-naming
+  "UP",    # pyupgrade
+  "B",     # bugbear
+  "A",     # builtin shadowing
+  "C4",    # comprehensions
+  "DTZ",   # naive datetimes — a payment timestamp without a timezone is a bug
+  "T20",   # no stray print()
+  "PT",    # pytest style
+  "RET",   # return consistency
+  "SIM",   # simplify
+  "ARG",   # unused arguments
+  "PTH",   # pathlib over os.path
+  "ERA",   # commented-out code
+  "PL",    # pylint subset
+  "TRY",   # exception anti-patterns
+  "RUF",   # ruff-specific
+  "ANN",   # type annotations
+  "S",     # bandit — security
+  "BLE",   # no bare except
+  "FBT",   # boolean positional args
+  "D",     # docstrings
+]
+ignore = [
+  "ANN401",   # Any is legitimate: Payrexx payloads are loosely typed
+  "D203",     # conflicts with D211
+  "D213",     # conflicts with D212
+  "TRY003",   # long messages inside raise are deliberate here — they carry the fix
+  "PLR0913",  # many arguments: mirrors an API with 35 gateway fields
+  "S105",     # "api_secret"-ish names are parameters, not hardcoded secrets
+
+  # --- Deliberate, with reasons ---
+  # Imports inside functions break a real cycle: client.py builds the resource
+  # objects, and every resource module imports the client for typing. Hoisting
+  # them would make `import payrexx` fail.
+  "PLC0415",
+  # __repr__/__str__/__enter__/__exit__ read as their own documentation, and a
+  # docstring on each would be noise in the rendered API reference.
+  "D105",
+  # Resource __init__ take one argument and are never called by users — the
+  # client constructs them. The class docstring says what the resource is.
+  "D107",
+  # __all__ is grouped by theme with comments, which is more useful to a reader
+  # than alphabetical order.
+  "RUF022",
+  # Requiring *every* parameter in the docstring backfires on methods that mirror
+  # an API with 35 fields: it produces "currency: The currency." thirty times over
+  # and buries the handful of arguments that genuinely need explaining. The
+  # docstrings here document what is non-obvious — units, encodings, traps — and
+  # leave self-describing names alone.
+  "D417",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["ANN", "E501"]
+# Tests get to be blunt: asserts, magic numbers, long lines, fake secrets, prints.
+"tests/*" = ["S101", "S105", "S106", "PLR2004", "E501", "D", "ANN", "T20", "ARG"]
+# The package facade is re-exports by design.
+"src/payrexx/__init__.py" = ["F401"]
 
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+
+# ---------------------------------------------------------------------------
+# Types — strict, and no silent escapes.
+# ---------------------------------------------------------------------------
 [tool.mypy]
 python_version = "3.10"
 strict = true
-files = ["src/payrexx"]
+files = ["src/payrexx", "tests"]
+warn_unreachable = true
+warn_no_return = true
+disallow_any_unimported = true
+disallow_untyped_decorators = true
+no_implicit_reexport = false          # __init__.py re-exports on purpose
+enable_error_code = [
+  "redundant-expr",
+  "truthy-bool",
+  "ignore-without-code",             # a bare `# type: ignore` is not acceptable
+  "unused-awaitable",
+]
+
+# tests/ carries an __init__.py purely so mypy names these modules "tests.test_x".
+# Its override patterns only accept a whole trailing component as a wildcard, so a
+# bare "test_*" never binds — which silently left the tests under full strictness.
+# Strictness stays complete on src/: that is the code that ships. Requiring return
+# annotations on every pytest function buys nothing, so those are relaxed here
+# while the bodies stay type-checked.
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+disallow_incomplete_defs = false
+disallow_any_decorated = false
+warn_return_any = false
+
+[[tool.mypy.overrides]]
+module = "responses"
+ignore_missing_imports = true

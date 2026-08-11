@@ -5,6 +5,7 @@ import responses
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from payrexx import PayrexxClient
+from payrexx.client import API_VERSION
 from payrexx.errors import (
     AuthenticationError,
     InvalidRequestError,
@@ -15,8 +16,10 @@ from payrexx.errors import (
     ServerError,
     TerminalNotFoundError,
 )
+from tests.helpers import request_params, request_url
 
 BASE = "https://api.payrexx.com"
+V = API_VERSION
 
 
 @pytest.fixture
@@ -43,11 +46,11 @@ def test_repr_does_not_leak_the_secret(client):
 def test_instance_is_injected_on_every_call(client):
     responses.add(
         responses.GET,
-        f"{BASE}/v1.0/PaymentProvider/",
+        f"{BASE}/{V}/PaymentProvider/",
         json={"status": "success", "data": []},
     )
     client.payment_provider.list()
-    assert responses.calls[0].request.params["instance"] == "demo"
+    assert request_params(responses.calls[0])["instance"] == "demo"
 
 
 @responses.activate
@@ -55,18 +58,18 @@ def test_instance_is_injected_on_ecr_calls_too(client):
     # The ECR docs omit it, but Payrexx returns 422 without it.
     responses.add(
         responses.GET,
-        f"{BASE}/v1.16/ecr/SN123/pair",
+        f"{BASE}/{V}/ecr/SN123/pair",
         json={"status": "success", "data": []},
     )
     client.ecr.get_pairing("SN123")
-    assert responses.calls[0].request.params["instance"] == "demo"
+    assert request_params(responses.calls[0])["instance"] == "demo"
 
 
 @responses.activate
 def test_bad_secret_maps_to_authentication_error(client):
     responses.add(
         responses.GET,
-        f"{BASE}/v1.0/PaymentProvider/",
+        f"{BASE}/{V}/PaymentProvider/",
         status=403,
         json={"status": "error", "message": "An error occurred: The API secret is not correct."},
     )
@@ -78,7 +81,7 @@ def test_bad_secret_maps_to_authentication_error(client):
 def test_403_without_secret_wording_is_a_rate_limit(client):
     # Payrexx reuses 403 for the WAF ban that follows sustained over-limit traffic.
     responses.add(
-        responses.GET, f"{BASE}/v1.0/PaymentProvider/", status=403, json={"message": "Forbidden"}
+        responses.GET, f"{BASE}/{V}/PaymentProvider/", status=403, json={"message": "Forbidden"}
     )
     with pytest.raises(RateLimitError):
         client.payment_provider.list()
@@ -87,7 +90,7 @@ def test_403_without_secret_wording_is_a_rate_limit(client):
 @responses.activate
 def test_405_is_reported_as_a_rate_limit(client):
     responses.add(
-        responses.GET, f"{BASE}/v1.0/PaymentProvider/", status=405, json={"message": "Not allowed"}
+        responses.GET, f"{BASE}/{V}/PaymentProvider/", status=405, json={"message": "Not allowed"}
     )
     with pytest.raises(RateLimitError, match="600 requests"):
         client.payment_provider.list()
@@ -97,7 +100,7 @@ def test_405_is_reported_as_a_rate_limit(client):
 def test_unknown_terminal_maps_to_terminal_not_found(client):
     responses.add(
         responses.GET,
-        f"{BASE}/v1.16/ecr/NOPE/pair",
+        f"{BASE}/{V}/ecr/NOPE/pair",
         status=404,
         json={"status": "error", "message": "An error occurred: Terminal not found"},
     )
@@ -109,9 +112,13 @@ def test_unknown_terminal_maps_to_terminal_not_found(client):
 def test_422_mentions_the_body_since_instance_is_always_sent(client):
     responses.add(
         responses.GET,
-        f"{BASE}/v1.0/PaymentProvider/",
+        f"{BASE}/{V}/PaymentProvider/",
         status=422,
-        json={"status": "error", "reason": "", "message": "An error occurred: Unprocessable Content"},
+        json={
+            "status": "error",
+            "reason": "",
+            "message": "An error occurred: Unprocessable Content",
+        },
     )
     with pytest.raises(InvalidRequestError, match="body field"):
         client.payment_provider.list()
@@ -121,7 +128,7 @@ def test_422_mentions_the_body_since_instance_is_always_sent(client):
 def test_error_envelope_on_a_200_still_raises(client):
     responses.add(
         responses.GET,
-        f"{BASE}/v1.0/PaymentProvider/",
+        f"{BASE}/{V}/PaymentProvider/",
         status=200,
         json={"status": "error", "message": "nope"},
     )
@@ -131,9 +138,9 @@ def test_error_envelope_on_a_200_still_raises(client):
 
 @responses.activate
 def test_get_is_retried_on_server_error(client):
-    responses.add(responses.GET, f"{BASE}/v1.0/PaymentProvider/", status=502)
+    responses.add(responses.GET, f"{BASE}/{V}/PaymentProvider/", status=502)
     responses.add(
-        responses.GET, f"{BASE}/v1.0/PaymentProvider/", json={"status": "success", "data": []}
+        responses.GET, f"{BASE}/{V}/PaymentProvider/", json={"status": "success", "data": []}
     )
     client.payment_provider.list()
     assert len(responses.calls) == 2
@@ -147,7 +154,7 @@ def test_post_is_never_retried():
     charge. One attempt, then surface the uncertainty to the caller.
     """
     client = PayrexxClient(instance="demo", api_secret="secret", max_retries=3)
-    responses.add(responses.POST, f"{BASE}/v1.0/Gateway/", status=503)
+    responses.add(responses.POST, f"{BASE}/{V}/Gateway/", status=503)
     with pytest.raises(ServerError):
         client.gateway.create(amount=100, currency="CHF")
     assert len(responses.calls) == 1
@@ -161,7 +168,7 @@ def test_transport_error_is_distinguishable_from_a_rejection():
     a rejection means nothing was charged, a transport error means we do not know.
     """
     client = PayrexxClient(instance="demo", api_secret="secret", max_retries=0)
-    responses.add(responses.POST, f"{BASE}/v1.0/Gateway/", body=RequestsConnectionError("boom"))
+    responses.add(responses.POST, f"{BASE}/{V}/Gateway/", body=RequestsConnectionError("boom"))
     with pytest.raises(PayrexxTransportError):
         client.gateway.create(amount=100, currency="CHF")
 
@@ -169,11 +176,9 @@ def test_transport_error_is_distinguishable_from_a_rejection():
 @responses.activate
 def test_pos_secret_is_used_for_ecr_when_supplied():
     client = PayrexxClient(instance="demo", api_secret="merchant", pos_api_secret="pos")
+    responses.add(responses.GET, f"{BASE}/{V}/ecr/SN1/pair", json={"status": "success", "data": []})
     responses.add(
-        responses.GET, f"{BASE}/v1.16/ecr/SN1/pair", json={"status": "success", "data": []}
-    )
-    responses.add(
-        responses.GET, f"{BASE}/v1.0/PaymentProvider/", json={"status": "success", "data": []}
+        responses.GET, f"{BASE}/{V}/PaymentProvider/", json={"status": "success", "data": []}
     )
     client.ecr.get_pairing("SN1")
     client.payment_provider.list()
@@ -184,15 +189,15 @@ def test_pos_secret_is_used_for_ecr_when_supplied():
 @responses.activate
 def test_serial_numbers_are_percent_encoded(client):
     responses.add(
-        responses.GET, f"{BASE}/v1.16/ecr/a%2Fb/pair", json={"status": "success", "data": []}
+        responses.GET, f"{BASE}/{V}/ecr/a%2Fb/pair", json={"status": "success", "data": []}
     )
     client.ecr.get_pairing("a/b")
-    assert "a%2Fb" in responses.calls[0].request.url
+    assert "a%2Fb" in request_url(responses.calls[0])
 
 
 @responses.activate
 def test_health_check_reports_failure_instead_of_raising(client):
-    responses.add(responses.GET, f"{BASE}/v1.0/PaymentProvider/", status=403, json={"message": "x"})
+    responses.add(responses.GET, f"{BASE}/{V}/PaymentProvider/", status=403, json={"message": "x"})
     result = client.health_check()
     assert result["ok"] is False
     assert "error" in result

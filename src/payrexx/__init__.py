@@ -1,8 +1,14 @@
 """payrexx — a Python client for the Payrexx payment API.
 
 Payrexx publishes official SDKs for PHP, Node and C#, but none for Python. This
-library fills that gap and encodes the behaviours that are easy to get wrong,
-each verified against a live account rather than inferred from the docs:
+library fills that gap. Its coverage is modelled on the official
+`PHP SDK <https://github.com/payrexx/payrexx-php>`_, which documents more of the
+API surface than the REST reference does — including whole resources, dozens of
+gateway fields, three undocumented transaction statuses, and the fact that
+``cancel`` is a ``DELETE`` while every sibling action is a ``POST``.
+
+It also encodes the behaviours that are easy to get wrong, each verified against a
+live account rather than inferred from the docs:
 
 - ``instance`` is required on *every* endpoint, ``/ecr/*`` included, and its
   absence surfaces as an opaque ``422``. The client always sends it.
@@ -20,13 +26,13 @@ Quick start::
     client = PayrexxClient(instance="my-shop", api_secret="…")
 
     gateway = client.gateway.create(
-        amount=1500,                     # CHF 15.00, in cents
+        amount=1500,  # CHF 15.00, in cents
         currency="CHF",
         reference_id="ORDER-1001",
-        payment_methods=["twint"],       # encoded as pm[0]=twint
+        payment_methods=["twint"],  # encoded as pm[0]=twint
         success_redirect_url="https://example.com/thanks",
     )
-    print(gateway.link)                  # send the shopper here
+    print(gateway.link)  # send the shopper here
 
 Receiving the webhook::
 
@@ -38,14 +44,18 @@ Receiving the webhook::
 """
 
 from payrexx.client import (
+    API_VERSION,
     ECR_API_VERSION,
     MERCHANT_API_VERSION,
     PayrexxClient,
 )
 from payrexx.enums import (
+    Currency,
     EcrPaymentMethod,
+    Interval,
     Mode,
     PaymentMethod,
+    SubscriptionStatus,
     TransactionStatus,
     TransactionType,
 )
@@ -63,9 +73,18 @@ from payrexx.errors import (
     WebhookSignatureError,
 )
 from payrexx.models import (
+    AuthToken,
+    Bill,
+    Design,
     EcrPayment,
     Gateway,
+    Invoice,
+    Page,
+    PaymentMethodInfo,
     PaymentProvider,
+    Payout,
+    QrCode,
+    Subscription,
     TerminalPairing,
     Transaction,
 )
@@ -83,6 +102,7 @@ __all__ = [
     "__version__",
     # Client
     "PayrexxClient",
+    "API_VERSION",
     "MERCHANT_API_VERSION",
     "ECR_API_VERSION",
     # Models
@@ -91,11 +111,23 @@ __all__ = [
     "EcrPayment",
     "PaymentProvider",
     "TerminalPairing",
+    "Subscription",
+    "Invoice",
+    "Page",
+    "Bill",
+    "Payout",
+    "QrCode",
+    "Design",
+    "PaymentMethodInfo",
+    "AuthToken",
     # Enums
     "TransactionStatus",
     "TransactionType",
     "PaymentMethod",
     "EcrPaymentMethod",
+    "SubscriptionStatus",
+    "Currency",
+    "Interval",
     "Mode",
     # Webhook
     "parse_webhook",
