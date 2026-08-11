@@ -18,13 +18,13 @@ GATEWAY_JSON: dict[str, Any] = {
     "data": [
         {
             "id": 36085448,
-            "hash": "f54c79d1516270a1defe1084208466c9",
+            "hash": "aaaa1111bbbb2222cccc3333dddd4444",
             "status": "waiting",
             "referenceId": "PI-TEST-0803-A",
             "amount": 1500,
             "currency": "CHF",
             "createdAt": 1786454809,
-            "link": "https://neoservice.payrexx.com/?payment=f54c79d1516270a1defe1084208466c9",
+            "link": "https://demo.payrexx.com/?payment=aaaa1111bbbb2222cccc3333dddd4444",
             "psp": [],
             "pm": [],
             "invoices": [],
@@ -41,7 +41,7 @@ GATEWAY_JSON: dict[str, Any] = {
 
 @pytest.fixture
 def client():
-    return PayrexxClient(instance="neoservice", api_secret="secret")
+    return PayrexxClient(instance="demo", api_secret="secret")
 
 
 @responses.activate
@@ -53,7 +53,7 @@ def test_create_parses_the_live_response_shape(client):
     assert gw.status == TransactionStatus.WAITING
     assert gw.reference_id == "PI-TEST-0803-A"
     assert gw.amount == 1500
-    assert gw.link.startswith("https://neoservice.payrexx.com/?payment=")
+    assert gw.link.startswith("https://demo.payrexx.com/?payment=")
     assert gw.created_at is not None
     assert gw.created_at.year == 2026
     assert gw.is_paid is False

@@ -1,5 +1,11 @@
 # payrexx-python
 
+[![CI](https://github.com/neoserviceai/payrexx-python/actions/workflows/ci.yml/badge.svg)](https://github.com/neoserviceai/payrexx-python/actions/workflows/ci.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Checked with mypy](https://img.shields.io/badge/mypy-strict-2a6db2.svg)](https://mypy-lang.org/)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
 Python client for the [Payrexx](https://payrexx.com) payment API — hosted payment
 pages, transactions, subscriptions, QR bills, payouts, POS terminals (ECR) and
 webhooks.
@@ -34,6 +40,12 @@ print(gateway.link)  # send the shopper here
 
 ```bash
 pip install git+https://github.com/neoserviceai/payrexx-python.git
+```
+
+Once released to PyPI:
+
+```bash
+pip install payrexx
 ```
 
 Python 3.10+ and `requests`. No other dependencies, nothing tied to a web
@@ -307,6 +319,14 @@ pytest tests/test_live.py -v -s
 
 They create gateways and delete them afterwards, and never complete a payment.
 Point them at a test account regardless.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). The endpoints still missing — the platform
+Service API in particular — are the most useful place to help.
+
+Found a security problem? Do not open a public issue; see
+[SECURITY.md](SECURITY.md).
 
 ## Not affiliated with Payrexx
 

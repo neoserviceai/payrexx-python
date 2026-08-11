@@ -77,7 +77,7 @@ class PayrexxClient:
 
         from payrexx import PayrexxClient
 
-        client = PayrexxClient(instance="neoservice", api_secret="…")
+        client = PayrexxClient(instance="demo", api_secret="…")
         gateway = client.gateway.create(
             amount=1500, currency="CHF", reference_id="PI-2026-00000001"
         )

@@ -20,7 +20,7 @@ SN = "SN-N86-1"
 
 @pytest.fixture
 def client():
-    return PayrexxClient(instance="neoservice", api_secret="secret", max_retries=3)
+    return PayrexxClient(instance="demo", api_secret="secret", max_retries=3)
 
 
 @responses.activate
@@ -169,8 +169,8 @@ def test_cancel_and_void_carry_the_payment_id_in_the_path(client):
     cancelled = client.ecr.cancel_payment(SN, "pay_1")
     voided = client.ecr.void_payment(SN, "pay_1")
 
-    assert request_url(responses.calls[0]).endswith("payment/pay_1/cancel?instance=neoservice")
-    assert request_url(responses.calls[1]).endswith("payment/pay_1/void?instance=neoservice")
+    assert request_url(responses.calls[0]).endswith("payment/pay_1/cancel?instance=demo")
+    assert request_url(responses.calls[1]).endswith("payment/pay_1/void?instance=demo")
     # Both now return a parsed payment rather than a raw dict.
     assert cancelled.payment_id == "pay_1"
     assert voided.serial_number == SN
