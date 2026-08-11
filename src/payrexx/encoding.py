@@ -4,8 +4,10 @@ Payrexx's own SDKs are written in PHP and post their payloads through
 ``http_build_query``. The API therefore only understands PHP's bracket notation
 for anything that is not a flat scalar:
 
-- a list becomes ``pm[0]=twint&pm[1]=visa`` — **numerically indexed**
-- a mapping becomes ``fields[forename][value]=Jean``
+A list is numerically indexed, and a mapping nests by key::
+
+    {"pm": ["twint", "visa"]}                     ->  pm[0]=twint&pm[1]=visa
+    {"fields": {"forename": {"value": "Jean"}}}   ->  fields[forename][value]=Jean
 
 This matters more than it looks. Sending ``pm=twint`` or ``pm[]=twint`` does not
 fail: Payrexx answers ``200 OK``, echoes back an empty ``pm`` list, and silently
@@ -54,18 +56,19 @@ def _flatten(key: str, value: Any, out: list[tuple[str, str]]) -> None:
 
 
 def encode_form(data: Mapping[str, Any]) -> list[tuple[str, str]]:
-    """Flatten ``data`` into ordered ``(name, value)`` pairs for a form body.
+    """Flatten ``data`` into ordered name/value pairs for a form body.
 
     Returns a list of pairs rather than a dict so repeated bracket keys survive,
     and so the ordering stays stable — which keeps request bodies reproducible in
     tests and readable in logs.
 
-    >>> encode_form({"amount": 1500, "currency": "CHF", "pm": ["twint"]})
-    [('amount', '1500'), ('currency', 'CHF'), ('pm[0]', 'twint')]
-    >>> encode_form({"fields": {"forename": {"value": "Jean"}}})
-    [('fields[forename][value]', 'Jean')]
-    >>> encode_form({"printSlip": True, "unset": None})
-    [('printSlip', '1')]
+    Examples:
+        >>> encode_form({"amount": 1500, "currency": "CHF", "pm": ["twint"]})
+        [('amount', '1500'), ('currency', 'CHF'), ('pm[0]', 'twint')]
+        >>> encode_form({"fields": {"forename": {"value": "Jean"}}})
+        [('fields[forename][value]', 'Jean')]
+        >>> encode_form({"printSlip": True, "unset": None})
+        [('printSlip', '1')]
     """
     out: list[tuple[str, str]] = []
     for key, value in data.items():

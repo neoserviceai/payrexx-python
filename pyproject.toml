@@ -34,9 +34,15 @@ dev = [
   "ruff>=0.6",
   "types-requests",
 ]
+docs = [
+  "mkdocs>=1.6",
+  "mkdocs-material>=9.5",
+  "mkdocstrings[python]>=0.26",
+]
 
 [project.urls]
 Homepage = "https://github.com/neoserviceai/payrexx-python"
+Documentation = "https://neoserviceai.github.io/payrexx-python/"
 Issues = "https://github.com/neoserviceai/payrexx-python/issues"
 "Payrexx API reference" = "https://developers.payrexx.com/reference/rest-api"
 "Payrexx PHP SDK (coverage reference)" = "https://github.com/payrexx/payrexx-php"
@@ -54,7 +60,10 @@ packages = ["src/payrexx"]
 # ---------------------------------------------------------------------------
 [tool.pytest.ini_options]
 minversion = "7.0"
-testpaths = ["tests"]
+# src/ is listed so --doctest-modules actually reaches the library: with only
+# "tests" here, the flag silently collected nothing from src and the docstring
+# examples were never verified.
+testpaths = ["tests", "src/payrexx"]
 addopts = [
   "-q",
   "--strict-markers",       # an unregistered marker is an error, not a skip

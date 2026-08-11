@@ -1,0 +1,3 @@
+# Webhooks
+
+::: payrexx.webhook

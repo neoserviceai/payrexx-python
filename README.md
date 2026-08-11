@@ -6,6 +6,8 @@
 [![Checked with mypy](https://img.shields.io/badge/mypy-strict-2a6db2.svg)](https://mypy-lang.org/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
+**[📖 Documentation](https://neoserviceai.github.io/payrexx-python/)**
+
 Python client for the [Payrexx](https://payrexx.com) payment API — hosted payment
 pages, transactions, subscriptions, QR bills, payouts, POS terminals (ECR) and
 webhooks.
@@ -296,6 +298,10 @@ pre-commit install          # optional, mirrors the CI gates
 
 pytest                      # 132 tests, no network, coverage floor at 90%
 ruff format . && ruff check . && mypy
+
+pip install -e ".[docs]"
+mkdocs serve                # docs at http://127.0.0.1:8000
+mkdocs build --strict       # what CI runs — a dead link fails the build
 ```
 
 The toolchain is strict on purpose — this library moves money, and a suite that
