@@ -83,6 +83,19 @@ class TerminalNotFoundError(NotFoundError):
     """
 
 
+class TerminalNotPairedError(PayrexxError):
+    """The terminal exists on the account but is not paired for ECR use.
+
+    Payrexx answers **403** for this, the same status it uses for a bad secret and
+    for a rate-limit ban — so without this distinction an unpaired terminal was
+    reported as a rate limit, which sends you looking in entirely the wrong place.
+    Observed on 2026-08-18 against a real NexGo N86 (``pairingStatus: UNPAIRED``).
+
+    The fix is to pair the device: read the pairing code from its ECR menu and call
+    :meth:`payrexx.resources.ecr.EcrResource.pair`.
+    """
+
+
 class RateLimitError(PayrexxError):
     """The rate limit was exceeded.
 

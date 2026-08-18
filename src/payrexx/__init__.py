@@ -52,6 +52,7 @@ from payrexx.client import (
 from payrexx.enums import (
     Currency,
     EcrPaymentMethod,
+    EcrPaymentStatus,
     Interval,
     Mode,
     PaymentMethod,
@@ -70,6 +71,7 @@ from payrexx.errors import (
     RateLimitError,
     ServerError,
     TerminalNotFoundError,
+    TerminalNotPairedError,
     WebhookSignatureError,
 )
 from payrexx.models import (
@@ -96,7 +98,7 @@ from payrexx.webhook import (
     verify_signature,
 )
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "__version__",
@@ -125,6 +127,7 @@ __all__ = [
     "TransactionType",
     "PaymentMethod",
     "EcrPaymentMethod",
+    "EcrPaymentStatus",
     "SubscriptionStatus",
     "Currency",
     "Interval",
@@ -143,6 +146,7 @@ __all__ = [
     "MissingInstanceError",
     "NotFoundError",
     "TerminalNotFoundError",
+    "TerminalNotPairedError",
     "RateLimitError",
     "PayrexxAPIError",
     "ServerError",

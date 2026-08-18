@@ -35,6 +35,7 @@ from payrexx.errors import (
     RateLimitError,
     ServerError,
     TerminalNotFoundError,
+    TerminalNotPairedError,
 )
 
 logger = logging.getLogger("payrexx")
@@ -273,9 +274,15 @@ class PayrexxClient:
         ctx = {"status_code": status, "payload": payload, "method": method, "path": path}
 
         if status == HTTPStatus.FORBIDDEN:
-            # Payrexx reuses 403 both for a bad secret and for a WAF rate-limit ban.
-            if "secret" in message.lower():
+            # Payrexx overloads 403 three ways: a bad secret, a terminal that is not
+            # paired, and a WAF rate-limit ban. Telling them apart matters — an
+            # unpaired terminal reported as a rate limit sends you looking at request
+            # volume instead of at the device menu.
+            lowered = message.lower()
+            if "secret" in lowered:
                 raise AuthenticationError(message, **ctx)
+            if "paired" in lowered or "pairing" in lowered:
+                raise TerminalNotPairedError(message, **ctx)
             raise RateLimitError(message, **ctx)
         if status == HTTPStatus.METHOD_NOT_ALLOWED:
             # The documented first symptom of exceeding 600 requests / 5 minutes.

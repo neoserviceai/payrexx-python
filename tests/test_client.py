@@ -201,3 +201,30 @@ def test_health_check_reports_failure_instead_of_raising(client):
     result = client.health_check()
     assert result["ok"] is False
     assert "error" in result
+
+
+def test_403_unpaired_terminal_is_not_a_rate_limit() -> None:
+    """A 403 saying the terminal is not paired must not read as a rate limit.
+
+    Payrexx overloads 403 three ways. Reporting an unpaired terminal as a rate limit
+    sends the reader looking at request volume instead of at the device menu — which
+    is exactly what happened against a real NexGo N86 on 2026-08-18.
+    """
+    import responses as _responses
+
+    from payrexx.errors import RateLimitError, TerminalNotPairedError
+
+    with _responses.RequestsMock() as mock:
+        mock.add(
+            _responses.GET,
+            "https://api.payrexx.com/v1.16/ecr/N860W0W9677/paymentMethods",
+            json={"message": "An error occurred: Terminal is not paired"},
+            status=403,
+        )
+        with (
+            PayrexxClient(instance="acme", api_secret="s3cret") as client,
+            pytest.raises(TerminalNotPairedError) as excinfo,
+        ):
+            client.ecr.payment_methods("N860W0W9677")
+    assert not isinstance(excinfo.value, RateLimitError)
+    assert excinfo.value.status_code == 403

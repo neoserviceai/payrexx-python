@@ -177,6 +177,33 @@ class PaymentMethod(_StrEnum):
     CRYPTO = "crypto"
 
 
+class EcrPaymentStatus(_StrEnum):
+    """The ``payment_status`` of an ECR terminal payment.
+
+    A different vocabulary from :class:`TransactionStatus`, and upper case on the
+    wire. The nine values below are the complete list, confirmed in writing by
+    Payrexx support on 2026-08-18 — the OpenAPI schema does not enumerate them,
+    which made a correct state mapping impossible to write until then.
+
+    Two of them deserve care rather than a mechanical mapping:
+
+    - :attr:`UNDERPAID` — money arrived, but not enough. Neither a success nor a
+      failure: what to do about the difference is a commercial decision.
+    - :attr:`UNKNOWN` — the terminal could not tell. Inventing an outcome here is
+      the one thing worse than leaving the payment pending.
+    """
+
+    IN_PROGRESS = "IN_PROGRESS"
+    SUCCESS = "SUCCESS"
+    DECLINED = "DECLINED"
+    UNDERPAID = "UNDERPAID"
+    TERMINATED = "TERMINATED"
+    REVERTED = "REVERTED"
+    EXPIRED = "EXPIRED"
+    FAILED = "FAILED"
+    UNKNOWN = "UNKNOWN"
+
+
 class EcrPaymentMethod(_StrEnum):
     """Payment methods selectable on a POS terminal payment request.
 

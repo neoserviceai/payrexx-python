@@ -107,6 +107,20 @@ class EcrResource:
     ) -> EcrPayment:
         """Send a payment request to a paired terminal.
 
+        Warning:
+            **Not idempotent.** Payrexx confirmed on 2026-08-18 that this endpoint
+            has no idempotency header or equivalent: two identical calls take two
+            payments. Guard against double submission on your side — and never
+            retry it on a timeout, because a request that timed out may well have
+            reached the terminal. This is why POST is excluded from the client's
+            retryable methods.
+
+            The ``payment_reference`` you pass here comes back in the webhook as
+            ``invoice.purpose``, **not** as ``referenceId``. That field exists on
+            POS deliveries too but is not reserved for you — TWINT puts its own
+            identifier in it — so match on
+            :attr:`payrexx.models.Transaction.purpose`.
+
         Args:
             amount: Amount in the smallest currency unit — ``1500`` is CHF 15.00.
             currency: ISO 4217 code.
@@ -183,12 +197,19 @@ class EcrResource:
         return EcrPayment.from_api(_unwrap(data), serial_number=serial_number)
 
     def void_payment(self, serial_number: str, payment_id: str) -> EcrPayment:
-        """Void a completed payment, before settlement.
+        """Void a completed payment, before settlement — all or nothing.
 
-        A void is all-or-nothing and generally only possible on the same day. For a
-        partial return, or once settled, a refund is needed instead — and refunds
-        are **not available over ECR on NexGo devices**, so that path goes through
+        Payrexx guarantees a **three-month** window (confirmed 2026-08-18), not the
+        same day as previously assumed, with one exception you cannot detect from
+        the API: on TWINT it only holds while the customer still has the same app
+        and phone. So prefer *attempting* the void and falling back to a refund over
+        predicting whether it will be accepted.
+
+        For a partial return, a refund is needed instead — and
+        `POST /ecr/{sn}/payment/{id}/refund` answers **501 Not Implemented on
+        NexGo**, so that path goes through
         [`payrexx.resources.transaction.TransactionResource.refund`][payrexx.resources.transaction.TransactionResource.refund].
+        On Newland terminals a refund goes through this same reversal mechanism.
 
         The id is in the path, for the same reason as `cancel_payment`.
         """

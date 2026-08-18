@@ -167,7 +167,12 @@ class Transaction:
             uuid=data.get("uuid"),
             status=TransactionStatus.parse(data.get("status")),
             amount=_as_int(data.get("amount")),
-            currency=invoice.get("currency") or data.get("currency"),
+            # A real POS-Terminal transaction carries neither `currency` — the field
+            # is `invoice.currencyAlpha3` there. Observed 2026-08-18 on a live NexGo
+            # payment, where the amount came back with no currency at all.
+            currency=(
+                invoice.get("currency") or data.get("currency") or invoice.get("currencyAlpha3")
+            ),
             # Payrexx exposes referenceId both at the top level and inside invoice;
             # they can disagree when a gateway was edited, so prefer the top level.
             reference_id=data.get("referenceId") or invoice.get("referenceId"),
