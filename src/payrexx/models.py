@@ -126,6 +126,19 @@ class Transaction:
     type: TransactionType | str | None
     mode: Mode | str | None
     time: str | None
+    purpose: str | None = None
+    """``invoice.purpose`` — where a POS or Tap to Pay reference actually comes back.
+
+    Confirmed by Payrexx support on 2026-08-18: the ``paymentReference`` sent to
+    ``POST /ecr/{sn}/payment`` and the ``orderReference`` given to the Tap to Pay
+    SDK's ``Sale`` are both returned here, **not** in :attr:`reference_id`. That
+    field is present on every transaction webhook but is not reserved for the
+    merchant — TWINT uses it for its own identification — so matching a
+    POS-initiated payment on it is unreliable.
+
+    Gateways are the exception: a hosted checkout does round-trip its
+    ``referenceId``, verified against the live account.
+    """
     pos_serial_number: str | None = None
     pos_terminal_name: str | None = None
     refundable: bool = False
@@ -158,6 +171,7 @@ class Transaction:
             # Payrexx exposes referenceId both at the top level and inside invoice;
             # they can disagree when a gateway was edited, so prefer the top level.
             reference_id=data.get("referenceId") or invoice.get("referenceId"),
+            purpose=invoice.get("purpose") or data.get("purpose"),
             type=tx_type,
             mode=mode,
             time=data.get("time"),
