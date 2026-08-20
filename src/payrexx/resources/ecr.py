@@ -66,8 +66,16 @@ class EcrResource:
         pairing_code: str,
         *,
         cashier_name: str | None = None,
-    ) -> Any:
+    ) -> TerminalPairing:
         """Pair a terminal with the account.
+
+        Returns the same :class:`~payrexx.models.TerminalPairing` as
+        :meth:`get_pairing`, so a caller can read the currency, language and tipping
+        settings straight off the result. It used to hand back the raw dict, which
+        made ``pairing.currency`` an ``AttributeError`` on the one call where you
+        most want it — the moment a terminal is first connected.
+
+        A successful pairing reports ``pairingStatus: AUTHORIZED``, not ``PAIRED``.
 
         Args:
             serial_number: Printed on the device and shown in the account.
@@ -80,7 +88,10 @@ class EcrResource:
         payload: dict[str, Any] = {"pairingCode": pairing_code}
         if cashier_name:
             payload["cashierName"] = cashier_name
-        return self._call("POST", self._path(serial_number, "pair"), data=payload)
+        data = self._call("POST", self._path(serial_number, "pair"), data=payload)
+        # Same shape as get_pairing, which does not unwrap either — the pairing
+        # endpoints answer with the object directly, unlike the payment ones.
+        return TerminalPairing.from_api(data, serial_number=serial_number)
 
     def unpair(self, serial_number: str) -> Any:
         """Release a terminal from the account."""
