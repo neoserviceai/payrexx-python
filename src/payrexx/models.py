@@ -221,11 +221,17 @@ class Transaction:
 class EcrPayment:
     """A POS terminal payment, from the ``/ecr/*`` endpoints.
 
-    Payrexx's OpenAPI declares ``payment_status`` as a bare string and enumerates
-    no values, so `status` is intentionally left as the raw string. Do not
-    hard-code comparisons against guessed values — read the transaction webhook
-    (``type == "POS-Terminal"``), whose statuses *are* documented, and treat this
-    field as a hint for the UI.
+    `status` stays a raw string, but the vocabulary is no longer a guess: Payrexx
+    confirmed the nine values on 2026-08-18 and they are enumerated in
+    :class:`~payrexx.enums.EcrPaymentStatus`.
+
+    Note:
+        The field is named differently depending on the endpoint. ``GET
+        /ecr/{sn}/payment/{id}`` answers with plain ``status`` — verified on a real
+        NexGo N86 — while the OpenAPI schema documents ``payment_status``. Reading
+        only the documented spelling left `status` as ``None`` on every real
+        terminal payment, which in turn kept the payment "in progress" forever from
+        the caller's point of view. All three spellings are read.
     """
 
     payment_id: str | None
@@ -246,7 +252,12 @@ class EcrPayment:
             slip_tuple = tuple(slip or ())
         return cls(
             payment_id=data.get("payment_id") or data.get("paymentId"),
-            status=data.get("payment_status") or data.get("paymentStatus"),
+            status=(
+                data.get("payment_status")
+                or data.get("paymentStatus")
+                # What the device actually returns.
+                or data.get("status")
+            ),
             slip=slip_tuple,
             serial_number=serial_number,
             raw=data,

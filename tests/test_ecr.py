@@ -174,3 +174,18 @@ def test_cancel_and_void_carry_the_payment_id_in_the_path(client):
     # Both now return a parsed payment rather than a raw dict.
     assert cancelled.payment_id == "pay_1"
     assert voided.serial_number == SN
+
+
+def test_ecr_payment_reads_the_status_the_device_actually_sends() -> None:
+    """GET /ecr/{sn}/payment/{id} answers `status`, not the documented `payment_status`.
+
+    Reading only the documented spelling left status as None on every real terminal
+    payment — so a finished payment looked like it was still running, and a till would
+    have waited on a screen that never changed. Verified against a NexGo N86.
+    """
+    from payrexx.models import EcrPayment
+
+    assert EcrPayment.from_api({"status": "TERMINATED"}).status == "TERMINATED"
+    # The documented spellings still win when present, so a future fix upstream
+    # cannot be undone by this fallback.
+    assert EcrPayment.from_api({"payment_status": "SUCCESS", "status": "x"}).status == "SUCCESS"
