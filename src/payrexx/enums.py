@@ -209,17 +209,26 @@ class EcrPaymentMethod(_StrEnum):
 
     Leaving it unset makes the terminal show its own chooser.
 
+    Settled on real hardware, 2026-08-20: the values are **upper case**. A NexGo N86
+    running EllyPOS rejects the lower-case form outright::
+
+        NAKA API Error (400): This payment method is not supported by your EllyPOS device
+
+    The REST reference spells them lower case, which is what this enum used to carry —
+    so the documentation is wrong here, or at least not what the firmware accepts. The
+    device's own ``paymentMethods`` response is the reliable list, and it answers in
+    upper case too.
+
     Note:
-        The REST reference spells these lowercase (``"twint"``) while the official
-        PHP SDK's own example passes ``'TWINT'``. Which casing the terminal firmware
-        actually requires is unverified — no simulator exists and we have no paired
-        hardware yet. Send the lowercase form (this enum) and check the result on
-        the first real device; if the terminal ignores the pre-selection and shows
-        its chooser instead, try uppercase.
+        A terminal may offer more than these. The same N86 also offers ``GOCRYPTO``
+        (Bitcoin / Lightning). Pin a method only when the register has already chosen
+        one; leaving it unset makes the terminal show its own chooser, which at a till
+        invites the customer to pick something the register did not expect.
     """
 
-    CARD = "card"
-    TWINT = "twint"
+    CARD = "CARD"
+    TWINT = "TWINT"
+    GOCRYPTO = "GOCRYPTO"
 
 
 class Currency(_StrEnum):

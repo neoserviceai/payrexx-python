@@ -135,7 +135,12 @@ class EcrResource:
         Args:
             amount: Amount in the smallest currency unit — ``1500`` is CHF 15.00.
             currency: ISO 4217 code.
-            payment_method: ``"card"`` or ``"twint"``. Omit to let the terminal show
+            payment_method: **Upper case** — ``"CARD"``, ``"TWINT"``, and on some
+                devices ``"GOCRYPTO"``. The lower-case form the REST reference
+                documents is rejected by the firmware ("This payment method is not
+                supported by your EllyPOS device"), verified on a NexGo N86 in
+                2026-08. Read the device's own ``payment_methods`` for the authoritative
+                list. Omit to let the terminal show
                 its own chooser.
             payment_reference: Your identifier for this payment. Pass it always —
                 it is the only thread linking the terminal payment back to your
