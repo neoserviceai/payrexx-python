@@ -236,6 +236,17 @@ class EcrPayment:
 
     payment_id: str | None
     status: str | None
+    reversal_status: str | None = None
+    """``reversalStatus`` — the only proof that a void actually reversed anything.
+
+    ``void_payment`` answers 200 with the untouched payment when the reversal did
+    not happen, so "no exception" is not evidence. A caller that treats the call
+    returning as success will report a refund that never occurred — verified on a
+    NexGo N86 in 2026-08, where a void left status SUCCESS, type CHARGE and this
+    field ``None``.
+    """
+    type: str | None = None
+    """``CHARGE`` for a payment, and something else once reversed."""
     slip: tuple[str, ...] = ()
     serial_number: str | None = None
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
@@ -258,6 +269,8 @@ class EcrPayment:
                 # What the device actually returns.
                 or data.get("status")
             ),
+            reversal_status=data.get("reversalStatus") or data.get("reversal_status"),
+            type=data.get("type"),
             slip=slip_tuple,
             serial_number=serial_number,
             raw=data,
