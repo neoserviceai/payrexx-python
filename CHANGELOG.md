@@ -4,6 +4,49 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] — 2026-08-20
+
+The first day with real hardware on the counter. A NexGo N86 disproved three things
+the documentation states, and two of them were quietly breaking the client.
+
+### Fixed
+
+- **`EcrPayment.status` was always `None` on real payments.** `GET
+  /ecr/{sn}/payment/{id}` answers with plain `status`; the OpenAPI schema documents
+  `payment_status`, and only that spelling was read. A finished payment therefore
+  looked like it was still running, and a caller polling for an outcome waited for
+  one that had already arrived. All three spellings are now read, documented ones
+  first.
+- **`pair()` returned a raw dict** while `get_pairing()` returned a
+  `TerminalPairing`, so reading `pairing.currency` right after connecting a terminal
+  raised `AttributeError` — on the one call where those settings matter most.
+- **A 403 meaning "terminal is not paired" was raised as `RateLimitError`.** Payrexx
+  overloads 403 three ways and only the bad-secret case was distinguished, sending
+  the reader to look at request volume instead of at the device menu.
+- **`Transaction.currency` was `None` on POS transactions** — a terminal payment
+  carries it as `invoice.currencyAlpha3`, which was not among the fields read.
+
+### Changed
+
+- **`EcrPaymentMethod` values are now UPPER CASE**, and `GOCRYPTO` was added. A
+  NexGo N86 rejects the lower-case form the REST reference documents:
+  `NAKA API Error (400): This payment method is not supported by your EllyPOS
+  device`. The device's own `payment_methods` response is the reliable list.
+
+### Added
+
+- `EcrPayment.reversal_status` and `EcrPayment.type` — **the only proof that a void
+  reversed anything.** `void_payment` answers 200 with the payment untouched when
+  the reversal did not happen, so "the call returned" is not evidence. Without this,
+  a caller reports a refund that never occurred, which is worse than a plain
+  failure.
+- `Transaction.purpose` and `EcrPaymentStatus` (see 0.3.0) now have hardware behind
+  them rather than a support answer alone — with one contradiction worth recording:
+  **Payrexx does not echo the reference on POS-Terminal deliveries.** Both
+  `referenceId` and `invoice.purpose` come back empty, despite their written answer
+  of 2026-08-18 saying otherwise. Integrations must match terminal payments some
+  other way.
+
 ## [0.3.0] — 2026-08-18
 
 Payrexx support answered a set of integration questions in writing (ticket
