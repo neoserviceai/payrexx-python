@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] — 2026-08-21
+
+### Added
+
+- `EcrPayment.receipt` — the data the terminal would have printed, as named fields.
+  The device answers `slip` as a **positional list with no keys**: amount, merchant,
+  currency, timestamp, masked PAN, authorisation, terminal id. This maps the
+  positions verified against a real NexGo N86.
+
+  The point is not convenience. A terminal's own slip carries the acceptance
+  platform's branding — on this device, a third party's — and a merchant may not want
+  that on the paper their customer takes away. There is no API to drive the device's
+  printer, and none is needed: with `print_slip=False` on the payment and this data in
+  hand, the receipt is produced by the merchant's own system, with every legally
+  required field intact.
+
+  Positional parsing is a heuristic and is documented as one: every value is read
+  defensively, anything unexpected comes back `None` rather than shifting its
+  neighbours, and `raw_slip` keeps the untouched list.
+
 ## [0.4.1] — 2026-08-21
 
 ### Added

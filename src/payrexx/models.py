@@ -251,6 +251,68 @@ class EcrPayment:
     serial_number: str | None = None
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
 
+    @property
+    def receipt(self) -> dict[str, Any]:
+        """The data the terminal would have printed, as named fields.
+
+        The device answers `slip` as a **positional list** with no keys — amount,
+        merchant, currency, timestamp, masked PAN, terminal id and so on, in a fixed
+        order. This maps the positions that were verified against a real NexGo N86,
+        so a caller can print its own receipt instead of the device's.
+
+        That matters beyond aesthetics: the terminal's own slip carries the
+        acceptance platform's branding, which a merchant may not want on the paper a
+        customer takes away. With `print_slip=False` on the payment and this data in
+        hand, the receipt can be produced by the merchant's own system, with the
+        legally required fields intact.
+
+        Positional parsing is a heuristic and says so: every value is looked up
+        defensively, and anything unexpected simply comes back as ``None`` rather
+        than shifting the other fields. `raw_slip` keeps the untouched list.
+        """
+
+        def at(index: int) -> Any:
+            try:
+                return self.slip[index]
+            except IndexError:
+                return None
+
+        def as_dict(value: Any) -> dict[str, Any]:
+            if isinstance(value, dict):
+                return value
+            if isinstance(value, str) and value.startswith("{"):
+                try:
+                    import ast
+
+                    parsed = ast.literal_eval(value)
+                    return parsed if isinstance(parsed, dict) else {}
+                except (ValueError, SyntaxError):
+                    return {}
+            return {}
+
+        merchant = as_dict(at(9))
+        address = merchant.get("primary_address") or {}
+        currency = as_dict(at(2))
+
+        return {
+            "amount": _as_int(at(0)),
+            "tip_amount": _as_int(at(4)),
+            "currency": currency.get("code") or currency.get("display_name"),
+            "datetime": at(3) or at(7),
+            "masked_pan": at(5),
+            "authorisation": at(6),
+            "merchant_name": merchant.get("full_name"),
+            "merchant_address": address.get("address"),
+            "merchant_zip": address.get("zip_code"),
+            "merchant_city": address.get("city"),
+            "terminal_label": at(10),
+            "payment_method": (as_dict(at(11)) or {}).get("type"),
+            "status": at(12),
+            "payment_id": at(13),
+            "transaction_uuid": at(18),
+            "raw_slip": list(self.slip),
+        }
+
     @classmethod
     def from_api(cls, data: dict[str, Any], *, serial_number: str | None = None) -> EcrPayment:
         """Build an instance from a Payrexx API payload."""

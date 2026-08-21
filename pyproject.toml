@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "payrexx"
-version = "0.4.1"
+version = "0.5.0"
 description = "Python client for the Payrexx payment API — gateways, transactions, subscriptions, bills, payouts, POS terminals (ECR) and webhooks"
 readme = "README.md"
 license = { file = "LICENSE" }
