@@ -212,7 +212,19 @@ class PayrexxClient:
             "Accept": "application/json",
         }
 
-        body = encode_form(data) if data else None
+        # Percent-encoded by hand rather than handed to requests as a list of pairs.
+        # requests uses quote_plus, which writes a space as "+" — legal in
+        # x-www-form-urlencoded, but Payrexx stores the value without decoding it, so
+        # a shop item called "Café Neoservice" reaches the terminal's printed receipt
+        # as "Café+Neoservice". Observed on a NexGo N86, 2026-08-21. RFC 3986 escaping
+        # ("%20") survives their round trip intact.
+        body = None
+        if data:
+            pairs = encode_form(data)
+            body = "&".join(
+                f"{quote(key, safe='')}={quote(value, safe='')}" for key, value in pairs
+            )
+            headers["Content-Type"] = "application/x-www-form-urlencoded"
 
         attempts = self.max_retries + 1 if method in _RETRYABLE_METHODS else 1
         last_transport_error: Exception | None = None

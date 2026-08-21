@@ -158,7 +158,9 @@ def test_gateway_create_passes_every_optional_field_through(client):
         language="fr",
     )
     body = request_body(responses.calls[0])
-    assert "buttonText=Pay+now" in body
+    # "%20", not "+": Payrexx stores form values without decoding "+", so a space sent
+    # that way reaches a printed terminal receipt as a literal plus sign.
+    assert "buttonText=Pay%20now" in body
     assert "skipResultPage=1" in body
     assert "isPriceExclusiveVat=0" in body
     assert "basket%5B0%5D%5Bname%5D=Item" in body

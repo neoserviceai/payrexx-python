@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] — 2026-08-21
+
+### Fixed
+
+- **Spaces were sent as `+` and reached printed receipts as a literal plus.** Form
+  bodies were handed to `requests`, which encodes a space with `quote_plus`. That is
+  legal `x-www-form-urlencoded`, but Payrexx stores the value without decoding it —
+  so a shop item named `Café Neoservice` printed on a NexGo N86 receipt as
+  `Café+Neoservice`, in front of the customer.
+
+  Bodies are now percent-encoded to RFC 3986 (`%20`). Nothing else about the
+  encoding changed: brackets stay escaped exactly as before, so the indexed-array
+  form Payrexx requires — and which the `pm` filter depends on — is untouched.
+
 ## [0.5.0] — 2026-08-21
 
 ### Added

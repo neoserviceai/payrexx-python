@@ -189,3 +189,22 @@ def test_ecr_payment_reads_the_status_the_device_actually_sends() -> None:
     # The documented spellings still win when present, so a future fix upstream
     # cannot be undone by this fallback.
     assert EcrPayment.from_api({"payment_status": "SUCCESS", "status": "x"}).status == "SUCCESS"
+
+
+@responses.activate
+def test_spaces_are_percent_encoded_not_plus(client) -> None:
+    """A space must travel as %20, because Payrexx does not decode "+".
+
+    Sent as "+", a shop item called "Café Neoservice" reaches the terminal's printed
+    receipt as "Café+Neoservice" — verified against a NexGo N86 on 2026-08-21. The
+    customer is the one who reads that receipt, so the bug is visible where it hurts.
+    """
+    responses.add(responses.POST, f"{BASE}/{V}/ecr/SN1/payment",
+                  json={"status": "success", "data": {}})
+    client.ecr.create_payment(
+        "SN1", amount=680, currency="CHF",
+        shop_items=[client.ecr.shop_item("Café Neoservice", 250, quantity=2)],
+    )
+    body = request_body(responses.calls[0])
+    assert "Caf%C3%A9%20Neoservice" in body
+    assert "+" not in body
