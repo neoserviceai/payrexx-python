@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] — 2026-08-21
+
+### Added
+
+- `ecr.config(serial)` — an **undocumented** endpoint, found by probing: `GET
+  /ecr/{sn}/config` answers where `configuration`, `settings`, `info` and friends
+  all return 500. It is the only single response showing what a device is really
+  set to: `printReceipt`, the tipping flag, and the payment methods it offers with
+  their networks.
+
+  It is also how you find out where third-party branding on a terminal comes from.
+  On a NexGo N86 the crypto networks carry `"powered_by": "NAKA"` — which is why
+  NAKA appears on the screen of a merchant who has never sold a cryptocurrency.
+
+  Read-only: PUT, POST and PATCH are all rejected, so changing any of it is a
+  back-office or on-device operation.
+
 ## [0.4.0] — 2026-08-20
 
 The first day with real hardware on the counter. A NexGo N86 disproved three things

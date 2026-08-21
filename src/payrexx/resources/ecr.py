@@ -237,6 +237,30 @@ class EcrResource:
     # Utilities
     # ------------------------------------------------------------------
 
+    def config(self, serial_number: str) -> Any:
+        """Read a terminal's full configuration.
+
+        **Undocumented endpoint**, found by probing in 2026-08: `GET
+        /ecr/{sn}/config` answers where `configuration`, `settings`, `info` and
+        friends all return 500. It is the only place that shows, in one response,
+        what the device is actually set to:
+
+        - `name`, `currency`, `tip` — matching the pairing;
+        - `printReceipt` — whether the device prints its own slip after a payment;
+        - `paymentMethods` — the methods the terminal offers, each with its
+          `payment_options` and, for crypto, the `payment_networks` and their
+          `powered_by`.
+
+        That last field is how you learn where third-party branding on the device
+        comes from: on a NexGo N86 the crypto networks carry `"powered_by": "NAKA"`,
+        which is why NAKA appears on the screen of a merchant who never sold a
+        cryptocurrency.
+
+        Read-only: PUT, POST and PATCH are all rejected ("Action ... does not
+        exist"), so changing any of this is a back-office or on-device operation.
+        """
+        return self._call("GET", self._path(serial_number, "config"))
+
     def payment_methods(self, serial_number: str) -> Any:
         """Ask the terminal which payment methods it accepts.
 
