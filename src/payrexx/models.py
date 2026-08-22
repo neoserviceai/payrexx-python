@@ -248,6 +248,12 @@ class EcrPayment:
     type: str | None = None
     """``CHARGE`` for a payment, and something else once reversed."""
     slip: tuple[str, ...] = ()
+    #: The slip as the device actually sent it when it sent a mapping. Kept
+    #: beside `slip` rather than instead of it: flattening a dict into a tuple
+    #: throws the keys away, and `receipt` then reads the wrong field for every
+    #: position — which is how a real card payment came back with every receipt
+    #: field empty.
+    slip_map: dict[str, Any] = field(default_factory=dict)
     serial_number: str | None = None
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
 
@@ -290,6 +296,9 @@ class EcrPayment:
                     return {}
             return {}
 
+        if self.slip_map:
+            return self._receipt_from_map(as_dict)
+
         merchant = as_dict(at(9))
         address = merchant.get("primary_address") or {}
         currency = as_dict(at(2))
@@ -313,13 +322,64 @@ class EcrPayment:
             "raw_slip": list(self.slip),
         }
 
+    def _receipt_from_map(self, as_dict: Any) -> dict[str, Any]:
+        """Named-field version of :attr:`receipt`, used when the device sent a map.
+
+        Preferred over the positional reading whenever it is available, because it
+        cannot silently shift: a missing key is missing, not the next field's value.
+
+        Note what is deliberately absent: the slip's own ``payment_status``. On a
+        NexGo N86 it read ``CANCELED`` for a card payment that had succeeded and
+        whose printed receipt said RÉUSSI (observed 2026-08-22). Putting that on a
+        customer's receipt would contradict the sale it documents, so the outcome
+        must come from the caller, which knows it.
+        """
+        slip = self.slip_map
+        company = slip.get("company")
+        merchant = as_dict(company)
+        address = merchant.get("primary_address") or {}
+        merchant_name = merchant.get("full_name") or (
+            company if isinstance(company, str) else None
+        )
+        pos = slip.get("point_of_sale")
+        pos_dict = as_dict(pos)
+        currency = slip.get("currency")
+        currency_dict = as_dict(currency)
+
+        return {
+            "amount": _as_int(slip.get("total_amount", slip.get("amount"))),
+            "tip_amount": _as_int(slip.get("tip_amount")),
+            "currency": (
+                currency_dict.get("code")
+                or currency_dict.get("display_name")
+                or (currency if isinstance(currency, str) else None)
+            ),
+            "datetime": slip.get("completed_at") or slip.get("created_at"),
+            "masked_pan": slip.get("card_number"),
+            "authorisation": slip.get("aid"),
+            "card_scheme": slip.get("payment_provider"),
+            "merchant_name": merchant_name,
+            "merchant_address": address.get("address"),
+            "merchant_zip": address.get("zip_code"),
+            "merchant_city": address.get("city"),
+            "point_of_sale": pos_dict.get("full_name") or (pos if isinstance(pos, str) else None),
+            "terminal_label": slip.get("terminal_name"),
+            "terminal_id": slip.get("terminal_id"),
+            "payment_method": (as_dict(slip.get("payment_method")) or {}).get("type"),
+            "payment_id": slip.get("transaction_id") or slip.get("ext_transaction_id"),
+            "transaction_uuid": slip.get("transaction_uuid"),
+            "raw_slip": dict(slip),
+        }
+
     @classmethod
     def from_api(cls, data: dict[str, Any], *, serial_number: str | None = None) -> EcrPayment:
         """Build an instance from a Payrexx API payload."""
         slip = data.get("slip")
+        slip_map: dict[str, Any] = {}
         if isinstance(slip, str):
             slip_tuple: tuple[str, ...] = (slip,)
         elif isinstance(slip, dict):
+            slip_map = dict(slip)
             slip_tuple = tuple(str(v) for v in slip.values())
         else:
             slip_tuple = tuple(slip or ())
@@ -334,6 +394,7 @@ class EcrPayment:
             reversal_status=data.get("reversalStatus") or data.get("reversal_status"),
             type=data.get("type"),
             slip=slip_tuple,
+            slip_map=slip_map,
             serial_number=serial_number,
             raw=data,
         )

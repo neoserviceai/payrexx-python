@@ -208,3 +208,80 @@ def test_spaces_are_percent_encoded_not_plus(client) -> None:
     body = request_body(responses.calls[0])
     assert "Caf%C3%A9%20Neoservice" in body
     assert "+" not in body
+
+
+# --- Receipt fields when the device answers a mapping ------------------------
+#
+# The device sends `slip` two ways. Early readings were a positional list, so
+# `receipt` parsed by index; a real NexGo N86 answers a **mapping**. Flattening
+# that mapping into a tuple threw the keys away and every receipt field came back
+# empty — on a card payment that had gone through, printed its own slip, and whose
+# details the merchant then had to reproduce on their own paper.
+
+_REAL_CARD_SLIP = {
+    "aid": "A0000000041010",
+    "amount": 100,
+    "card_number": "535388******4256",
+    "company": "Neoservice Christillin",
+    "completed_at": "Aug 22, 2026 02:14:33 PM",
+    "created_at": "Aug 22, 2026 02:14:33 PM",
+    "currency": "CHF",
+    "ext_transaction_id": "ca55cf91-1812-4668-b188-6bde74783aa5",
+    "payment_method": {"name": "CARD", "type": "CARD", "group": "CARD"},
+    "payment_provider": "MASTERCARD",
+    "payment_status": "CANCELED",
+    "point_of_sale": "Neoservice Christillin",
+    "terminal_name": "Terminal-0506",
+    "tip_amount": 0,
+    "transaction_id": "",
+}
+
+
+def _card_payment():
+    from payrexx.models import EcrPayment
+
+    return EcrPayment.from_api(
+        {"paymentId": "p1", "status": "TERMINATED", "slip": _REAL_CARD_SLIP}
+    )
+
+
+def test_receipt_reads_a_mapping_slip_by_name():
+    """Every field a card receipt legally needs must survive."""
+    receipt = _card_payment().receipt
+
+    assert receipt["masked_pan"] == "535388******4256"
+    assert receipt["authorisation"] == "A0000000041010"
+    assert receipt["card_scheme"] == "MASTERCARD"
+    assert receipt["amount"] == 100
+    assert receipt["currency"] == "CHF"
+    assert receipt["merchant_name"] == "Neoservice Christillin"
+    assert receipt["terminal_label"] == "Terminal-0506"
+    assert receipt["payment_method"] == "CARD"
+    assert receipt["datetime"] == "Aug 22, 2026 02:14:33 PM"
+
+
+def test_receipt_never_carries_the_slips_own_status():
+    """The slip said CANCELED for a payment that succeeded.
+
+    Observed on a NexGo N86 on 2026-08-22: the printed receipt read RÉUSSI while
+    ``slip.payment_status`` read ``CANCELED``. Printing that on the customer's copy
+    would contradict the sale it documents, so the outcome comes from the caller.
+    """
+    receipt = _card_payment().receipt
+
+    assert "status" not in receipt
+    assert "CANCELED" not in str(
+        {k: v for k, v in receipt.items() if k != "raw_slip"}
+    )
+
+
+def test_positional_slip_still_parses():
+    """The list form has not gone away, so it must keep working."""
+    from payrexx.models import EcrPayment
+
+    payment = EcrPayment.from_api(
+        {"paymentId": "p2", "status": "SUCCESS", "slip": [1500, None, {"code": "CHF"}]}
+    )
+    assert payment.slip_map == {}
+    assert payment.receipt["amount"] == 1500
+    assert payment.receipt["currency"] == "CHF"

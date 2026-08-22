@@ -4,6 +4,38 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-08-22
+
+### Fixed
+
+- **`EcrPayment.receipt` returned nothing but `None` when the device answered a
+  mapping.** `slip` comes back two ways: an early positional list, which `receipt`
+  parsed by index, and a mapping, which a real NexGo N86 sends. `from_api`
+  flattened the mapping into a tuple of its values — throwing the keys away — and
+  the positional reading then looked up the wrong index for every field. Every
+  receipt field came back empty on a card payment that had actually gone through.
+
+  The mapping is now kept in `EcrPayment.slip_map` and `receipt` prefers a
+  by-name reading when it is present, falling back to the positional one
+  otherwise. Named lookups also cannot silently shift: a missing key is missing,
+  not the next field's value.
+
+  This is what makes a merchant-printed card receipt possible — masked PAN, AID,
+  scheme, amount, currency, timestamp, terminal and merchant all survive.
+
+### Changed
+
+- **`receipt` no longer exposes the slip's own `payment_status`.** On a NexGo N86
+  it read `CANCELED` for a card payment that had succeeded and whose printed
+  receipt said RÉUSSI (2026-08-22). A field that contradicts the sale it documents
+  has no business on a customer's copy; the outcome belongs to the caller, which
+  knows it.
+
+### Added
+
+- `receipt` now carries `card_scheme` (e.g. `MASTERCARD`), `terminal_id` and
+  `point_of_sale` when the device supplies them.
+
 ## [0.5.1] — 2026-08-21
 
 ### Fixed
